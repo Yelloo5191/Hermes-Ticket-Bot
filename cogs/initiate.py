@@ -1,4 +1,4 @@
-import discord, random, os, pymongo
+import discord, random, os
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 from discord.utils import get
