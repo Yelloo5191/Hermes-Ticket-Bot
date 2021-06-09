@@ -1,0 +1,6 @@
+discord-buttons-plugin==0.1.2
+discord-ext-menus==1.0.0a30+g309c702
+discord.py==1.7.2
+Flask==1.1.2
+peewee==3.14.4
+
