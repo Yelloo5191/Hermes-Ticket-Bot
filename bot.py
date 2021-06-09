@@ -2,6 +2,9 @@ import discord, os
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 from pymongo import MongoClient
+from peewee import *
+from core import database
+
 
 # - Token Hider
 from dotenv import load_dotenv
@@ -17,11 +20,6 @@ for filename in os.listdir('./cogs'):
     if filename.endswith('.py'):
         client.load_extension(f'cogs.{filename[:-3]}')
 
-
-# - Mongo Setup
-cluster = MongoClient(os.getenv("MONGO"))
-db = cluster["hermes"]
-collection = db["tickets"]
 
 
 # - On Bot Startup Event

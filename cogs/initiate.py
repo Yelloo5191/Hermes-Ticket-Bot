@@ -2,17 +2,9 @@ import discord, random, os, pymongo
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 from discord.utils import get
-from pymongo import MongoClient
+from core import database
 
-# - Token Hider
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# - Mongo Setup
-cluster = MongoClient(os.getenv("MONGO"))
-db = cluster["hermes"]
-collection = db["tickets"]
 
 class Initiate(commands.Cog):
 
@@ -23,13 +15,13 @@ class Initiate(commands.Cog):
     @has_permissions(administrator=True)
     async def initiate(self, ctx):
 
-        results = collection.find_one({"_id":ctx.guild.id})
+        query = database.TInfo.select().where((database.TInfo.ServerId == ctx.guild.id))
 
         roles = await ctx.guild.fetch_roles()
         for x in roles: 
             if x == "@everyone":
                 everyoneRole = x
-        if (results != None):
+        if query.exists():
             await ctx.send("You have already setup Hermes.")
         else:
             helperRole = await ctx.guild.create_role(name = "ticket-helper", colour = discord.Colour(0x91c4eb), reason = "Needed to give mods/staff access to all tickets")
@@ -59,11 +51,14 @@ class Initiate(commands.Cog):
             ticketCreateEmbed = await startChannel.send(embed=embed)
             await ticketCreateEmbed.add_reaction('🎫')
 
-            post = {"_id": ctx.guild.id, "tickets":0}
-            collection.insert_one(post)
+            q : database.TInfo = database.TInfo.create(ServerId = ctx.guild.id, TicketCount = 0, ChannelList = '[]')
+            q.save()
+
             await ctx.send("Ticket database connected securely <a:loading:849380657863196752>")
 
             await ctx.send("Hermes bot initiation complete. <:check:849380858535084052>")
+    
+        database.db.close()
 
 def setup(client):
     client.add_cog(Initiate(client))

@@ -1,20 +1,10 @@
-import discord, os
+import discord, os, json
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 from discord.utils import get
-from pymongo import MongoClient
+from core import database
 
-# - Token Hider
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# - Mongo Setup
-cluster = MongoClient(os.getenv("MONGO"))
-db = cluster["hermes"]
-collection = db["tickets"]
-
-ticketChannels = []
 responses = ['y', 'n']
 
 class TicketCreate(commands.Cog):
@@ -24,6 +14,9 @@ class TicketCreate(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
+        query = database.TInfo.select().where((database.TInfo.ServerId == payload.guild_id))
+        q : database.TInfo = database.TInfo.select().where((database.TInfo.ServerId == payload.guild_id)).get()
+        ticketChannels = json.loads(q.ChannelList)
 
         guild = self.client.get_guild(payload.guild_id)
         ticketCreateChannel = discord.utils.get(guild.channels, name = 'ticket-creation')
@@ -33,23 +26,29 @@ class TicketCreate(commands.Cog):
 
 
         if payload.channel_id == ticketCreateChannel.id:
-            results = collection.find_one({"_id":payload.user_id})
-            if results == None:
-                post = {"_id":payload.user_id, "amount":0}
-                collection.insert_one(post)
+
+            query = database.UInfo.select().where((database.UInfo.UserId == payload.user_id))
+
+            if not query.exists():
+
+                q : database.UInfo = database.UInfo.create(UserId = payload.user_id, TicketCount = 0)
+                q.save()
+
             else:
-                collection.update_one({"_id":payload.user_id}, {"$set": {"amount":results["amount"] + 1}})
-                results = collection.find_one({"_id":payload.user_id})
+                q: database.UInfo = database.UInfo.select().where(database.UInfo.UserId == payload.user_id).get()
+
+                q.TicketCount += 1
+                q.save()
             
-            if results["amount"] > 3:
+            if q.TicketCount > 3:
                 user = await self.client.fetch_user(payload.user_id)
                 await user.send("You have reached the maximum amount of tickets, close one to open a new one.")
             else:
 
-                results = collection.find_one({"_id":payload.guild_id})
-                collection.update_one({"_id":payload.guild_id}, {"$set": {"tickets": results["tickets"] + 1}})
-                results = collection.find_one({"_id":payload.guild_id})
-                count = results["tickets"]
+                q = database.TInfo.select().where((database.TInfo.ServerId == payload.guild_id)).get()
+                q.TicketCount += 1
+                q.save()
+                count = q.TicketCount
 
 
                 helperRole = discord.utils.get(guild.roles,name="ticket-helper")
@@ -65,6 +64,9 @@ class TicketCreate(commands.Cog):
                 await logsChannel.send(embed=embed)
 
                 ticketChannels.append(ticketChannel.id)
+                q : database.TInfo = database.TInfo.select().where((database.TInfo.ServerId == payload.guild_id)).get()
+                q.ChannelList = str(ticketChannels)
+                q.save()
 
                 await(await ticketChannel.send("@everyone")).delete()
                 
@@ -74,8 +76,8 @@ class TicketCreate(commands.Cog):
 
 
         if payload.channel_id in ticketChannels:
-            results = collection.find_one({"_id":payload.guild_id})
-            count = results["tickets"]
+            q = database.TInfo.select().where((database.TInfo.ServerId == payload.guild_id)).get()
+            count = q.TicketCount
 
             if payload.user_id != 849154028890095656:
                 reactor = payload.user_id
@@ -88,9 +90,15 @@ class TicketCreate(commands.Cog):
                 answerMessage = await self.client.wait_for('message', check=check, timeout=10.0)
 
                 if answerMessage.content.lower() == 'y':
-                    results = collection.find_one({"_id": reactor})
-                    collection.update_one({"_id": reactor}, {"$set":{"amount": results["amount"] - 1}})
 
+                    query = database.UInfo.select().where((database.UInfo.UserId == reactor)).get()
+                    query.TicketCount -= 1
+                    query.save
+
+                    ticketChannels.remove(channel.id)
+                    q : database.TInfo = database.TInfo.select().where((database.TInfo.ServerId == payload.guild_id)).get()
+                    q.ChannelList = str(ticketChannels)
+                    q.save()
                     await channel.delete()
                     embed = discord.Embed(title=f"Ticket closed by: {reactorobj.name}",description=f"Ticket number {count}",color=discord.Colour(0xfc6e6e))
                     await logsChannel.send(embed=embed)
@@ -99,10 +107,15 @@ class TicketCreate(commands.Cog):
                     await ctx.send("Cancelled")
                 else:
                     await ctx.send("Unexpected response")
+
+        database.db.close()
     
     @commands.command(aliases = ["delete"])
     async def end(self, ctx):
-        
+        query = database.TInfo.select().where((database.TInfo.ServerId == ctx.guild.id))
+        q : database.TInfo = database.TInfo.select().where((database.TInfo.ServerId == ctx.guild.id)).get()
+        ticketChannels = json.loads(q.ChannelList)
+
         reactor = ctx.author.id
         reactorobj = await self.client.fetch_user(reactor)
         channel = discord.utils.get(ctx.guild.channels, id = ctx.channel.id)
@@ -114,11 +127,14 @@ class TicketCreate(commands.Cog):
             answerMessage = await self.client.wait_for('message', check=check, timeout=10.0)
 
             if answerMessage.content.lower() == 'y':
-                results = collection.find_one({"_id": reactor})
-                collection.update_one({"_id": reactor}, {"$set":{"amount": results["amount"] - 1}})
+                
+                query = database.UInfo.select().where((database.UInfo.UserId == reactor)).get()
+                query.TicketCount -= 1
+                query.save()
 
-                results = collection.find_one({"_id":ctx.guild.id})
-                count = results["tickets"]
+                query = database.TInfo.select().where((database.TInfo.ServerId == ctx.guild.id)).get()
+                count = query.TicketCount
+
                 logsChannel = discord.utils.get(ctx.guild.channels, name = 'ticket-logs')
 
                 await channel.delete()
@@ -129,6 +145,8 @@ class TicketCreate(commands.Cog):
                 await ctx.send("Cancelled")
             else:
                 await ctx.send("Unexpected response")
+        
+        database.db.close()
     
     @commands.command()
     async def rename(self, ctx, *, message):
