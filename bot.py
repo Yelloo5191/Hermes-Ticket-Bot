@@ -1,7 +1,6 @@
 import discord, os
 from discord.ext import commands
 from discord.ext.commands import has_permissions
-from pymongo import MongoClient
 from peewee import *
 from core import database
 
