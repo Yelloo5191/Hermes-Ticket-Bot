@@ -1,7 +1,7 @@
 from peewee import *
 from flask import Flask
 
-db = SqliteDatabase('tickets.db')
+db = MySQLDatabase("Yellow_DB", user="Yellow", password="YellowPassword", host="3.142.255.184", port = 3306)
 
 def iter_tables(model_dict):
     for key in model_dict:
@@ -25,6 +25,12 @@ class UInfo(BaseModel):
     id = AutoField()
     UserId = TextField()
     TicketCount = IntegerField()
+    ChannelList = TextField()
+
+class Tickets(BaseModel):
+    id = AutoField()
+    ChannelId = TextField()
+    CreatorId = TextField()
 
 app = Flask(__name__)
 
@@ -37,5 +43,15 @@ def _db_close(exc):
     if not db.is_closed():
         db.close()
 
-tables = {"TicketInfo":TInfo, "UserInfo":UInfo}
+tables = {"TicketInfo":TInfo, "UserInfo":UInfo, "Tickets":Tickets}
 iter_tables(tables)
+
+# when ticket is created, info logged will be 
+    # To Server:
+        # Server ID
+        # Server TicketCount
+        # Server TicketList
+    # To User:
+        # User ID
+        # User TicketCount
+        # User TicketList

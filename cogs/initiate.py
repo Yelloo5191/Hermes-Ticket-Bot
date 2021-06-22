@@ -51,7 +51,7 @@ class Initiate(commands.Cog):
             ticketCreateEmbed = await startChannel.send(embed=embed)
             await ticketCreateEmbed.add_reaction('🎫')
 
-            q : database.TInfo = database.TInfo.create(ServerId = ctx.guild.id, TicketCount = 0, ChannelList = '[]')
+            q = database.TInfo.create(ServerId = ctx.guild.id, TicketCount = 0, ChannelList = '[]')
             q.save()
 
             await ctx.send("Ticket database connected securely <a:loading:849380657863196752>")
@@ -59,6 +59,21 @@ class Initiate(commands.Cog):
             await ctx.send("Hermes bot initiation complete. <:check:849380858535084052>")
     
         database.db.close()
+    
+    @commands.command()
+    async def clear(self, ctx):
+        if ctx.author.id == 304024578009595907:
+
+            query = database.TInfo.delete().where().get()
+            query.execute()
+
+            query = database.UInfo.delete().where().get()
+            query.execute()
+
+            ctx.send("Database cleared.")
+        else:
+            ctx.send("You are not the owner of Hermes...")
+            
 
 def setup(client):
     client.add_cog(Initiate(client))
