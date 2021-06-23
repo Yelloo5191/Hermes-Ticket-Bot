@@ -31,6 +31,7 @@ class Tickets(BaseModel):
     id = AutoField()
     ChannelId = TextField()
     CreatorId = TextField()
+    CreateDate = DateTimeField()
 
 app = Flask(__name__)
 

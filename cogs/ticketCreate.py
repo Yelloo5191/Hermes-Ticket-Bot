@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 from discord.utils import get
 from core import database
-
+from datetime import datetime
 
 responses = ['y', 'n']
 
@@ -71,7 +71,7 @@ class TicketCreate(commands.Cog):
                     }
                     ticketChannel = await guild.create_text_channel(name = f"ticket-{count}", overwrites = overwrites, reason = "Needed ticket channel for member", category = category)
 
-                    query = database.Tickets.create(ChannelId = ticketChannel.id, CreatorId = payload.member.id)
+                    query = database.Tickets.create(ChannelId = ticketChannel.id, CreatorId = payload.member.id, CreateDate = datetime.now())
                     query.save()
 
                     opener = await self.client.fetch_user(payload.user_id)
@@ -133,13 +133,19 @@ class TicketCreate(commands.Cog):
                         logsChannel = discord.utils.get(guild.channels, name = 'ticket-logs')
 
                         query = database.Tickets.select().where((database.Tickets.ChannelId == channel.id)).get()
+                        timeOpened = query.CreateDate
+                        userOpened = await self.client.fetch_user(query.CreatorId)
                         query.delete_instance()
                         query.save()
 
 
 
                         await channel.delete()
-                        embed = discord.Embed(title=f"Ticket closed by: {reactorobj.name}",description=f"Ticket number {count}",color=discord.Colour(0xfc6e6e))
+                        embed = discord.Embed(title=f"Ticket closed", description=f"Ticket number {count}",color=discord.Colour(0xfc6e6e))
+                        embed.add_field(name = "Opened by:  ", value = f"{userOpened.mention}")
+                        embed.add_field(name = "Closed by:  ", value = f"{reactorobj.mention}")
+                        embed.add_field(name = "Date opened:  ", value = f"{timeOpened}")
+                        embed.add_field(name = "Date closed:  ", value = f"{datetime.now()}")
                         await logsChannel.send(embed=embed)
 
                     elif answerMessage.content.lower() == 'n':
@@ -176,6 +182,7 @@ class TicketCreate(commands.Cog):
                     query = database.UInfo.select().where((database.UInfo.UserId == query.CreatorId)).get()
 
                     query.TicketCount -= 1
+                    query.save()
                     channelList = json.loads(query.ChannelList) # set the ticket channels list to the list from the database
                     channelList.remove(channel.id)
                     query.ChannelList = str(channelList)
@@ -192,11 +199,18 @@ class TicketCreate(commands.Cog):
                     logsChannel = discord.utils.get(ctx.guild.channels, name = 'ticket-logs')
 
                     query = database.Tickets.select().where((database.Tickets.ChannelId == channel.id)).get()
+                    timeOpened = query.CreateDate
+                    userOpened = await self.client.fetch_user(query.CreatorId)
                     query.delete_instance()
                     query.save()
 
                     await channel.delete()
-                    embed = discord.Embed(title=f"Ticket closed by: {reactorobj.name}",description=f"Ticket number {count}",color=discord.Colour(0xfc6e6e))
+
+                    embed = discord.Embed(title=f"Ticket closed", description=f"Ticket number {count}",color=discord.Colour(0xfc6e6e))
+                    embed.add_field(name = "Opened by:  ", value = f"{userOpened.mention}")
+                    embed.add_field(name = "Closed by:  ", value = f"{reactorobj.mention}")
+                    embed.add_field(name = "Date opened:  ", value = f"{timeOpened}")
+                    embed.add_field(name = "Date closed:  ", value = f"{datetime.now()}")
                     await logsChannel.send(embed=embed)
 
                 elif answerMessage.content.lower() == 'n':
