@@ -1,7 +1,11 @@
 from peewee import *
 from flask import Flask
+from dotenv import load_dotenv
+import os
 
-db = MySQLDatabase("Yellow_DB", user="Yellow", password="YellowPassword", host="3.142.255.184", port = 3306)
+load_dotenv()
+
+db = MySQLDatabase("Yellow_DB", user=os.getenv("USER"), password=os.getenv("PASSWORD"), host=os.getenv("HOST"), port = os.getenv("PORT"))
 
 def iter_tables(model_dict):
     for key in model_dict:
