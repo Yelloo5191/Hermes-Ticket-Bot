@@ -75,7 +75,11 @@ class TicketCreate(commands.Cog):
                     query.save()
 
                     opener = await self.client.fetch_user(payload.user_id)
-                    embed = discord.Embed(title=f"New ticket opened by: {opener.name}", description=f"Ticket number {count}", color=discord.Colour(0xa7f7a4))
+                    embed = discord.Embed(title=f"Ticket opened", description=f"Ticket number {count}", color=discord.Colour(0xa7f7a4))
+                    embed.add_field(name = "Opened by:  ", value = f"{opener.name}")
+                    embed.add_field(name = "Date opened:  ", value = f"{datetime.now()}")
+                    embed.timestamp = datetime.utcnow()
+                    embed.set_footer(text='\u200b',icon_url=f"{guild.icon_url}")
                     await logsChannel.send(embed=embed)
 
                     ticketChannels.append(ticketChannel.id)
@@ -88,9 +92,11 @@ class TicketCreate(commands.Cog):
                     query.ChannelList = str(userTickets)
                     query.save()
 
-                    await(await ticketChannel.send("@ticket-helper")).delete() # pings ticket helper role and deletes
+                    await(await ticketChannel.send(f"{helperRole.mention}")).delete() # pings ticket helper role and deletes
 
                     embed = discord.Embed(title=f"Welcome to Ticket {count}!", description="A staff member will be with you shortly. React with the 🗑️ emoji to delete this channel!")
+                    embed.timestamp = datetime.utcnow()
+                    embed.set_footer(text='\u200b',icon_url=f"{guild.icon_url}")
                     infoMessage = await ticketChannel.send(embed=embed)
                     await infoMessage.add_reaction("🗑️")
         
@@ -146,6 +152,8 @@ class TicketCreate(commands.Cog):
                         embed.add_field(name = "Closed by:  ", value = f"{reactorobj.mention}")
                         embed.add_field(name = "Date opened:  ", value = f"{timeOpened}")
                         embed.add_field(name = "Date closed:  ", value = f"{datetime.now()}")
+                        embed.timestamp = datetime.utcnow()
+                        embed.set_footer(text='\u200b',icon_url=f"{guild.icon_url}")
                         await logsChannel.send(embed=embed)
 
                     elif answerMessage.content.lower() == 'n':

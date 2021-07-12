@@ -5,7 +5,7 @@ import os
 
 load_dotenv()
 
-db = MySQLDatabase("Yellow_DB", user=os.getenv("USER"), password=os.getenv("PASSWORD"), host=os.getenv("HOST"), port = os.getenv("PORT"))
+db = MySQLDatabase("Yellow_DB", user=os.getenv("USER"), password=os.getenv("PASSWORD"), host=os.getenv("HOST"), port = int(os.getenv("PORT")))
 
 def iter_tables(model_dict):
     for key in model_dict:
