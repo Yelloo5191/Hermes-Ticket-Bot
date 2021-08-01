@@ -5,7 +5,8 @@ import os
 
 load_dotenv()
 
-db = MySQLDatabase("Yellow_DB", user=os.getenv("USER"), password=os.getenv("PASSWORD"), host=os.getenv("HOST"), port = int(os.getenv("PORT")))
+db = SqliteDatabase('bot.db')
+
 
 def iter_tables(model_dict):
     for key in model_dict:
@@ -14,10 +15,12 @@ def iter_tables(model_dict):
             db.create_tables([model_dict[key]])
             db.close()
 
+
 class BaseModel(Model):
 
     class Meta:
         database = db
+
 
 class TInfo(BaseModel):
     id = AutoField()
@@ -25,11 +28,13 @@ class TInfo(BaseModel):
     TicketCount = IntegerField()
     ChannelList = TextField()
 
+
 class UInfo(BaseModel):
     id = AutoField()
     UserId = TextField()
     TicketCount = IntegerField()
     ChannelList = TextField()
+
 
 class Tickets(BaseModel):
     id = AutoField()
@@ -37,26 +42,36 @@ class Tickets(BaseModel):
     CreatorId = TextField()
     CreateDate = DateTimeField()
 
+
+class SPref(BaseModel):
+    id = AutoField()
+    GuildId = TextField()
+    BotPrefix = TextField()
+
+
 app = Flask(__name__)
+
 
 @app.before_request
 def _db_connect():
     db.connect()
+
 
 @app.teardown_request
 def _db_close(exc):
     if not db.is_closed():
         db.close()
 
-tables = {"TicketInfo":TInfo, "UserInfo":UInfo, "Tickets":Tickets}
+
+tables = {"TicketInfo": TInfo, "UserInfo": UInfo, "Tickets": Tickets, "ServerPreferences": SPref}
 iter_tables(tables)
 
-# when ticket is created, info logged will be 
-    # To Server:
-        # Server ID
-        # Server TicketCount
-        # Server TicketList
-    # To User:
-        # User ID
-        # User TicketCount
-        # User TicketList
+# when ticket is created, info logged will be
+# To Server:
+# Server ID
+# Server TicketCount
+# Server TicketList
+# To User:
+# User ID
+# User TicketCount
+# User TicketList
